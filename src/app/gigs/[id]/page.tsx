@@ -13,10 +13,11 @@ export default async function GigDetailsPage({ params }: { params: Promise<{ id:
   if (!gig || !req) notFound();
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <main className="page-shell max-w-5xl">
+      <div className="glass-card flex flex-wrap items-center justify-between gap-4 rounded-lg p-6">
         <div>
-          <h1 className="text-3xl font-bold">{gig.name}</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.35em] text-[var(--accent)]">Gig Details</p>
+          <h1 className="mt-2 text-4xl font-black">{gig.name}</h1>
           <p className="text-[var(--muted-foreground)]">{gig.venue || "No venue"} {gig.event_date ? `· ${gig.event_date}` : ""}</p>
         </div>
         <form action="/api/setlists/generate" method="post">
@@ -24,7 +25,7 @@ export default async function GigDetailsPage({ params }: { params: Promise<{ id:
           <button className="btn btn-primary">Generate setlist</button>
         </form>
       </div>
-      <section className="mt-6 rounded-lg border border-[var(--border)] bg-white p-5">
+      <section className="glass-card mt-6 rounded-lg p-5">
         <h2 className="text-xl font-semibold">Requirements</h2>
         <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
           <Item label="Event type" value={req.event_type} />
@@ -35,11 +36,11 @@ export default async function GigDetailsPage({ params }: { params: Promise<{ id:
           <Item label="Desired vibe" value={req.desired_vibe} />
         </dl>
       </section>
-      <section className="mt-6 rounded-lg border border-[var(--border)] bg-white p-5">
+      <section className="glass-card mt-6 rounded-lg p-5">
         <h2 className="text-xl font-semibold">Generated setlists</h2>
         <div className="mt-4 grid gap-2">
           {setlists?.length ? setlists.map((setlist) => (
-            <Link key={setlist.id} href={`/setlists/${setlist.id}`} className="rounded-md border border-[var(--border)] p-3 hover:bg-[var(--muted)]">{setlist.name}</Link>
+            <Link key={setlist.id} href={`/setlists/${setlist.id}`} className="rounded-md border border-white/10 bg-white/[0.04] p-3 hover:border-[var(--accent)]/60">{setlist.name}</Link>
           )) : <p className="text-sm text-[var(--muted-foreground)]">No setlists generated yet.</p>}
         </div>
       </section>
