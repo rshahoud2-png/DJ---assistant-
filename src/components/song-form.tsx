@@ -5,7 +5,7 @@ type Song = Record<string, unknown>;
 
 export function SongForm({ song }: { song?: Song }) {
   return (
-    <form action={saveSong} className="grid gap-4 rounded-lg border border-[var(--border)] bg-white p-5">
+    <form action={saveSong} className="glass-card grid gap-4 rounded-lg p-5">
       {song?.id ? <input type="hidden" name="id" value={String(song.id)} /> : null}
       <div className="grid gap-4 md:grid-cols-2">
         <Field name="title" label="Title" value={song?.title} required />
