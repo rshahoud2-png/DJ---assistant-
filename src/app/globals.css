@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fbfaf7;
+  --foreground: #171412;
+  --muted: #f0ede8;
+  --muted-foreground: #6b6258;
+  --border: #ded8cf;
+  --accent: #006d77;
+  --accent-foreground: #ffffff;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+input,
+select,
+textarea {
+  background: #fff;
+}
+
+.field {
+  @apply w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)];
+}
+
+.label {
+  @apply text-sm font-medium text-[var(--muted-foreground)];
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold transition;
+}
+
+.btn-primary {
+  @apply bg-[var(--accent)] text-white hover:opacity-90;
+}
+
+.btn-secondary {
+  @apply border border-[var(--border)] bg-white hover:bg-[var(--muted)];
+}
