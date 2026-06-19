@@ -12,10 +12,11 @@ export default async function EditSongPage({ params }: { params: Promise<{ id: s
     : null;
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="mb-6 text-3xl font-bold">Edit song metadata</h1>
+    <main className="page-shell max-w-4xl">
+      <p className="text-xs font-bold uppercase tracking-[0.35em] text-[var(--accent)]">Track Metadata</p>
+      <h1 className="mb-6 mt-3 text-4xl font-black md:text-5xl">Edit song metadata</h1>
       {signed?.data?.signedUrl ? (
-        <section className="mb-6 rounded-lg border border-[var(--border)] bg-white p-5">
+        <section className="glass-card mb-6 rounded-lg p-5">
           <h2 className="font-semibold">Private playback</h2>
           <p className="mb-3 text-sm text-[var(--muted-foreground)]">This audio uses a 10-minute signed Supabase Storage URL.</p>
           <audio className="w-full" controls src={signed.data.signedUrl} />
