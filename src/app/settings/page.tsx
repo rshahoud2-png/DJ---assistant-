@@ -6,9 +6,10 @@ export default async function SettingsPage() {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-3xl font-bold">Settings</h1>
-      <form action={saveProfile} className="mt-6 grid gap-4 rounded-lg border border-[var(--border)] bg-white p-5">
+    <main className="page-shell max-w-3xl">
+      <p className="text-xs font-bold uppercase tracking-[0.35em] text-[var(--accent)]">Profile</p>
+      <h1 className="mt-3 text-4xl font-black md:text-5xl">Settings</h1>
+      <form action={saveProfile} className="glass-card mt-6 grid gap-4 rounded-lg p-5">
         <label className="grid gap-1">
           <span className="label">Display name</span>
           <input className="field" name="display_name" defaultValue={profile?.display_name ?? ""} />
