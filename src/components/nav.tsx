@@ -3,8 +3,11 @@ import { Disc3, Headphones, Sparkles } from "lucide-react";
 
 const links = [
   ["Dashboard", "/dashboard"],
+  ["Import", "/import"],
   ["Library", "/library"],
-  ["New Gig", "/gigs/new"],
+  ["Events", "/events"],
+  ["Set Builder", "/set-builder"],
+  ["Integrations", "/integrations"],
   ["Crates", "/crates"],
   ["Settings", "/settings"],
 ];
@@ -18,8 +21,8 @@ export function Nav() {
             <Disc3 className="h-5 w-5" />
           </span>
           <span>
-            <span className="block leading-none">AI DJ</span>
-            <span className="text-xs font-medium uppercase tracking-[0.32em] text-[var(--accent)]">Assistant</span>
+            <span className="block leading-none">DJ</span>
+            <span className="text-xs font-medium uppercase tracking-[0.32em] text-[var(--accent)]">Agent</span>
           </span>
         </Link>
         <div className="hidden flex-wrap items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1 text-sm md:flex">
@@ -29,9 +32,9 @@ export function Nav() {
             </Link>
           ))}
         </div>
-        <Link href="/gigs/new" className="btn btn-primary gap-2">
+        <Link href="/import" className="btn btn-primary gap-2">
           <Sparkles className="h-4 w-4" />
-          Plan Set
+          Import
         </Link>
         <div className="flex w-full gap-2 overflow-x-auto pb-1 text-sm md:hidden">
           {links.map(([label, href]) => (
