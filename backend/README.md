@@ -10,6 +10,33 @@ FastAPI service for real audio analysis using librosa. This backend is deployed 
 - `POST /analyze-transition`
 - `POST /generate-set-analysis`
 
+## Analysis Engine
+
+`/analyze-track` loads the uploaded audio into a temporary file, analyzes it with librosa/scipy/numpy, and deletes the temp file after processing.
+
+It estimates:
+
+- duration
+- BPM
+- beat timestamps
+- downbeat approximation
+- 16/32-beat phrase boundaries
+- RMS energy curve
+- onset strength
+- spectral flux / novelty curve
+- intro start/end
+- vocal or main-section start
+- first drop/hook
+- breakdown
+- build-up
+- peak energy section
+- outro start/end
+- best mix-in and mix-out cues
+- stable loop region
+- confidence scores and warnings
+
+No GPU, paid AI, hosted model, or permanent audio storage is required.
+
 ## Local Backend Run
 
 ```bash
@@ -40,3 +67,20 @@ Set `ALLOWED_ORIGINS` to your Vercel domain.
 - Do not hard-code Supabase keys.
 - Uploaded audio is written to a temporary file, processed, and deleted after analysis.
 - The backend does not permanently store uploaded music unless future code explicitly adds that behavior.
+
+## Export Roadmap
+
+V1:
+
+- Analyze audio
+- Generate cue points
+- Generate transition notes
+- Export CSV/JSON from the frontend app
+
+V2:
+
+- Export rekordbox XML cue metadata
+- Export VirtualDJ database XML cue metadata
+- Experimental Serato cue/crate metadata support
+
+DJ Agent should never rewrite or permanently modify user audio files in v1.
