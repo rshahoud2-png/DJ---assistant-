@@ -13,6 +13,8 @@ export type SpecialMoment = {
   notes?: string;
 };
 
+export type TransitionType = "Blend" | "Echo Out" | "Loop Transition" | "Fade" | "Cut" | "Drop Swap";
+
 export type Song = {
   id: string;
   user_id?: string;
@@ -32,6 +34,17 @@ export type Song = {
   file_path?: string | null;
   duration?: number | null;
   notes?: string | null;
+  album?: string | null;
+  rating?: number | null;
+  comments?: string | null;
+  source_software?: string | null;
+  existing_playlist?: string | null;
+  existing_crate?: string | null;
+  intro_cue?: string | null;
+  mix_in_cue?: string | null;
+  mix_out_cue?: string | null;
+  drop_cue?: string | null;
+  loop_cue?: string | null;
 };
 
 export type GigRequirements = {
@@ -60,9 +73,19 @@ export type ScoredSong = {
 
 export type SetlistTrack = ScoredSong & {
   position: number;
+  section: string;
   bpmTransitionNote: string;
   keyCompatibilityNote: string;
   moment?: string;
+  introCue: string;
+  mixInCue: string;
+  mixOutCue: string;
+  dropCue: string;
+  loopCue: string;
+  transitionType: TransitionType;
+  transitionBars: number;
+  transitionInstruction: string;
+  performanceInstructions: string;
 };
 
 export type SetlistResult = {
