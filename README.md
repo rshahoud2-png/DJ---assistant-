@@ -1,33 +1,42 @@
-# AI DJ Assistant
+# DJ Agent
 
-A free, rule-based DJ setlist assistant built with Next.js App Router, TypeScript, Tailwind CSS, Supabase Auth, Supabase Postgres, Supabase Storage, Vercel, and GitHub.
+DJ Agent is an AI-powered DJ preparation assistant for professional DJs, wedding DJs, club DJs, mobile DJs, bars, restaurants, lounges, and nightclubs.
 
-This MVP does not use paid AI APIs, hosted AI models, stem separation, or mashup rendering. Manual metadata entry is required.
+This is not a music player, DJ software, or a basic playlist creator. DJ Agent analyzes a DJ's existing library metadata and generates a complete event-ready performance roadmap with song order, cue recommendations, transition instructions, energy management, and DJ notes.
 
-## Features
+The MVP uses rule-based intelligence only. No paid AI APIs or hosted AI models are required.
 
-- Supabase email/password auth
-- Music library with manual BPM, key, energy, mood, language, culture, and best-use metadata
-- Private song file uploads to Supabase Storage bucket `song-files`
-- Gig questionnaire for event requirements
-- Rule-based setlist generator with scores, reasons, BPM notes, key notes, warnings, suggestions, and special-moment DJ notes
-- Saved setlists and crates/playlists
+## Stack
+
+- React and TypeScript
+- Next.js App Router for the existing GitHub/Vercel architecture
+- Tailwind CSS
+- shadcn/ui-compatible component structure
+- Supabase Auth, Postgres, and Storage
+- Vercel deployment from GitHub
+
+The existing project is intentionally continued rather than rebuilt from scratch.
+
+## Core Features
+
+- Universal library importer for Serato exports, rekordbox XML, VirtualDJ XML, CSV, TXT, M3U/M3U8, PLS, XSPF, JSON, and manual paste lists
+- Import review table with editable rows, confidence badges, and missing metadata warnings
+- Music library with imported and manual BPM, key, energy, mood, language, culture, and best-use metadata
+- Event questionnaire for event type, duration, crowd demographics, music preferences, and energy preference
+- Rule-based set builder engine with warmup, build-up, peak-time, cooldown, and closing sections
+- Transition engine with blend, echo out, loop transition, fade, cut, and drop swap recommendations
+- Cue point engine with estimated intro, mix-in, mix-out, drop, loop, and transition length
+- Live-readable Generated Set performance view
+- CSV and JSON export preserving song order, cue notes, transition notes, and event information
+- DJ Software Integrations page for Serato DJ, rekordbox, and VirtualDJ
 - Owner-only RLS policies for user data
 
 ## Local Setup
 
-1. Install dependencies:
-
 ```bash
 npm install
-```
-
-2. Create a Supabase project on the free tier.
-
-3. Copy environment variables:
-
-```bash
 cp .env.example .env.local
+npm run dev
 ```
 
 Fill in:
@@ -38,48 +47,43 @@ Fill in:
 
 Do not commit real keys.
 
-4. Apply the SQL migration in `supabase/migrations/20260619000000_initial_schema.sql` using Supabase SQL editor or the Supabase CLI.
+## Supabase
 
-5. Run locally:
+Apply migrations in order:
 
-```bash
-npm run dev
-```
+- `supabase/migrations/20260619000000_initial_schema.sql`
+- `supabase/migrations/20260619001000_dj_agent_roadmap.sql`
 
-## Supabase Storage
+The migrations create owner-only tables and a private `song-files` bucket. Run the second migration manually in Supabase before using roadmap/export features in production.
 
-The migration creates a private bucket named `song-files` and RLS policies on `storage.objects`.
+## Deployment
 
-Important rules:
+Deploy directly from GitHub to Vercel. Add the same environment variables in Vercel Project Settings.
 
-- Do not make copyrighted song files public.
-- Store files under user-owned paths.
-- Use Supabase signed URLs for playback when adding a player.
-- The current MVP uploads files privately and stores `file_path` on the song row.
-
-## Vercel Deployment
-
-1. Push this repo to GitHub.
-2. Import the GitHub repo into Vercel.
-3. Add the same environment variables in Vercel Project Settings.
-4. Deploy.
-
-The app is designed for the Vercel free tier and Supabase free tier. Keep song uploads within free-tier storage limits.
+No SQLite, Docker, local database, local file storage, Electron app, Python service, or localhost dependency is required for production.
 
 ## Recommendation Engine
 
 The rule engine lives in `src/lib/recommendation`.
 
-It scores each song by matching requested styles, culture/language preferences, mood, desired vibe, event type, explicit-content rules, energy curve fit, BPM transition smoothness, Camelot key compatibility, must-play songs, do-not-play exclusions, artist repeat penalties, and best-use tags for special moments.
+It scores songs by BPM compatibility, key compatibility, genre compatibility, energy progression, event type, crowd demographics, requested styles, blocked styles, culture/language preferences, explicit-content rules, must-play songs, do-not-play exclusions, artist repeat penalties, and best-use tags.
 
-Hard filters always run before scoring:
+It produces a performance roadmap, not just a playlist:
 
-- explicit songs are excluded if explicit content is not allowed
-- do-not-play songs are excluded
-- must-play songs are included when found in the library
+- Section
+- Cue notes
+- Transition type
+- Transition bars
+- Transition instruction
+- Performance instructions
 
-See `docs/recommendation-engine.md` for more detail.
+## Documentation
 
-## Future Work
-
-Automatic BPM/key detection is intentionally future work. See `docs/future-audio-analysis.md` for free/local options such as Mixxx-style analysis, Essentia, librosa, and a local Python worker.
+- `docs/supabase-setup.md`
+- `docs/vercel-deployment.md`
+- `docs/environment-variables.md`
+- `docs/database-schema.md`
+- `docs/integration-roadmap.md`
+- `docs/supported-playlist-formats.md`
+- `docs/recommendation-engine.md`
+- `docs/future-audio-analysis.md`
