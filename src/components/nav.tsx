@@ -3,6 +3,7 @@ import { Disc3, Headphones, Sparkles } from "lucide-react";
 
 const links = [
   ["Dashboard", "/dashboard"],
+  ["Analysis", "/analysis"],
   ["Import", "/import"],
   ["Library", "/library"],
   ["Events", "/events"],
@@ -32,9 +33,9 @@ export function Nav() {
             </Link>
           ))}
         </div>
-        <Link href="/import" className="btn btn-primary gap-2">
+        <Link href="/analysis" className="btn btn-primary gap-2">
           <Sparkles className="h-4 w-4" />
-          Import
+          Analyze
         </Link>
         <div className="flex w-full gap-2 overflow-x-auto pb-1 text-sm md:hidden">
           {links.map(([label, href]) => (
