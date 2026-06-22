@@ -45,11 +45,43 @@ export async function POST(request: Request) {
       position: track.position,
       score: track.score,
       selected_reason: track.reasons.join(" "),
+      section: track.section,
       bpm_transition_note: track.bpmTransitionNote,
       key_compatibility_note: track.keyCompatibilityNote,
       moment: track.moment ?? null,
+      intro_cue: track.introCue,
+      mix_in_cue: track.mixInCue,
+      mix_out_cue: track.mixOutCue,
+      drop_cue: track.dropCue,
+      loop_cue: track.loopCue,
+      transition_type: track.transitionType,
+      transition_bars: track.transitionBars,
+      transition_instruction: track.transitionInstruction,
+      performance_instructions: track.performanceInstructions,
     })));
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    const transitions = result.tracks.slice(1).map((track, index) => {
+      const previous = result.tracks[index];
+      return {
+        user_id: userData.user.id,
+        setlist_id: setlist.id,
+        current_song_id: previous.song.id,
+        next_song_id: track.song.id,
+        position: track.position - 1,
+        bpm_difference: Math.abs((previous.song.bpm ?? 0) - (track.song.bpm ?? 0)) || null,
+        key_compatibility: track.keyCompatibilityNote,
+        energy_difference: (track.song.energy_level ?? 5) - (previous.song.energy_level ?? 5),
+        transition_type: track.transitionType,
+        transition_bars: track.transitionBars,
+        transition_instruction: track.transitionInstruction,
+        dj_notes: track.performanceInstructions,
+      };
+    });
+    if (transitions.length) {
+      const { error: transitionError } = await supabase.from("transitions").insert(transitions);
+      if (transitionError) return NextResponse.json({ error: transitionError.message }, { status: 400 });
+    }
   }
 
   return NextResponse.redirect(new URL(`/setlists/${setlist.id}`, request.url), 303);
