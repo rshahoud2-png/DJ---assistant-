@@ -22,13 +22,15 @@ from app.schemas import (
 )
 
 SUPPORTED_SUFFIXES = {".mp3", ".wav", ".aiff", ".aif", ".flac", ".m4a", ".aac", ".ogg"}
+DEFAULT_ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:5173,https://*.vercel.app"
 
 app = FastAPI(title="DJ Agent Analysis Backend", version="0.2.0")
 
-allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",") if origin.strip()]
+allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS).split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app" if "https://*.vercel.app" in allowed_origins else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
