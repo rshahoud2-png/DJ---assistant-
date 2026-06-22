@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { AudioLines, Disc3, Gauge, KeyRound, Mic2, Music2, Route } from "lucide-react";
+import { AudioLines, Disc3, Download, Gauge, KeyRound, Mic2, Music2, Route } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { EnergyMeter, MiniGraph } from "@/components/dj-visuals";
 
@@ -18,15 +18,19 @@ export default async function SetlistPage({ params }: { params: Promise<{ id: st
   return (
     <main className="page-shell">
       <section className="glass-card overflow-hidden rounded-lg p-6 md:p-8">
-        <p className="text-xs font-bold uppercase tracking-[0.35em] text-[var(--accent)]">Generated Setlist</p>
+        <p className="text-xs font-bold uppercase tracking-[0.35em] text-[var(--accent)]">Generated Set</p>
         <div className="mt-3 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
             <h1 className="text-4xl font-black md:text-6xl">{setlist.name}</h1>
             <p className="mt-3 max-w-3xl text-[var(--muted-foreground)]">{setlist.energy_curve_explanation}</p>
           </div>
           <div className="rounded-md border border-[var(--border)] bg-[var(--accent)]/10 px-4 py-3 text-sm font-semibold text-[var(--accent)]">
-            {tracks?.length ?? 0} tracks ready
+            {tracks?.length ?? 0} roadmap tracks
           </div>
+        </div>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <a className="btn btn-primary gap-2" href={`/setlists/${id}/export?format=csv`}><Download className="h-4 w-4" /> Export CSV</a>
+          <a className="btn btn-secondary gap-2" href={`/setlists/${id}/export?format=json`}><Download className="h-4 w-4" /> Export JSON</a>
         </div>
       </section>
 
@@ -38,7 +42,7 @@ export default async function SetlistPage({ params }: { params: Promise<{ id: st
       <section className="mt-6 glass-card rounded-lg p-5">
         <div className="mb-6 flex items-center gap-3">
           <Route className="h-6 w-6 text-[var(--accent)]" />
-          <h2 className="text-2xl font-bold">Performance Timeline</h2>
+          <h2 className="text-2xl font-bold">DJ Performance View</h2>
         </div>
         <div className="relative grid gap-4">
           <div className="absolute left-6 top-0 hidden h-full w-px bg-gradient-to-b from-[var(--accent)] via-white/20 to-transparent md:block" />
@@ -50,12 +54,13 @@ export default async function SetlistPage({ params }: { params: Promise<{ id: st
               <div>
                 <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                   <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.24em] text-[var(--accent)]">{track.section || "Roadmap"}</p>
                     <h3 className="text-xl font-bold">{track.songs?.title ?? "Deleted song"}</h3>
                     <p className="text-sm text-[var(--muted-foreground)]">{track.songs?.artist ?? ""}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Pill icon={Gauge}>{track.songs?.bpm ?? "--"} BPM</Pill>
-                    <Pill icon={KeyRound}>{track.songs?.camelot_key ?? "No key"}</Pill>
+                    <Pill icon={KeyRound}>{track.songs?.camelot_key ?? track.songs?.musical_key ?? "No key"}</Pill>
                     <Pill icon={AudioLines}>Score {track.score}</Pill>
                   </div>
                 </div>
@@ -65,8 +70,11 @@ export default async function SetlistPage({ params }: { params: Promise<{ id: st
                 </div>
                 <div className="mt-5 grid gap-3 md:grid-cols-3">
                   <Note title="Reason selected" icon={Music2} text={track.selected_reason} />
-                  <Note title="Transition" icon={Disc3} text={track.bpm_transition_note ?? "No BPM note."} />
-                  <Note title="Key compatibility" icon={KeyRound} text={track.key_compatibility_note ?? "No key note."} />
+                  <Note title="Cue notes" icon={Disc3} text={`Intro: ${track.intro_cue || "0:00"}. Mix in: ${track.mix_in_cue || "estimated"}. Mix out: ${track.mix_out_cue || "estimated"}. Drop: ${track.drop_cue || "estimated"}. Loop: ${track.loop_cue || "16 bars"}.`} />
+                  <Note title="Transition" icon={KeyRound} text={`${track.transition_type || "Blend"} over ${track.transition_bars || 16} bars. ${track.transition_instruction || track.bpm_transition_note || "Follow phrase timing."}`} />
+                </div>
+                <div className="mt-3">
+                  <Note title="Performance instructions" icon={Route} text={track.performance_instructions || "Use intro and mix-out cues to preserve phrase timing."} />
                 </div>
               </div>
             </article>
