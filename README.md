@@ -2,9 +2,9 @@
 
 DJ Agent is an AI-powered DJ preparation assistant for professional DJs, wedding DJs, club DJs, mobile DJs, bars, restaurants, lounges, and nightclubs.
 
-This is not a music player, DJ software, or a basic playlist creator. DJ Agent analyzes a DJ's existing library metadata and generates a complete event-ready performance roadmap with song order, cue recommendations, transition instructions, energy management, and DJ notes.
+This is not a music player, DJ software, or a basic playlist creator. DJ Agent analyzes a DJ's existing library metadata and generated audio analysis to create a complete event-ready performance roadmap with song order, cue recommendations, transition instructions, energy management, and DJ notes.
 
-The MVP uses rule-based intelligence by default. A separate Python FastAPI backend can perform real audio analysis with librosa when deployed.
+The MVP uses rule-based intelligence by default. A separate Python FastAPI backend can perform real audio analysis with librosa when deployed. No paid AI APIs or hosted models are required.
 
 ## Stack
 
@@ -25,12 +25,13 @@ The existing project is intentionally continued rather than rebuilt from scratch
 - Music library with imported and manual BPM, key, energy, mood, language, culture, and best-use metadata
 - Event questionnaire for event type, duration, crowd demographics, music preferences, and energy preference
 - Rule-based set builder engine with warmup, build-up, peak-time, cooldown, and closing sections
-- Transition engine with blend, echo out, loop transition, fade, cut, and drop swap recommendations
-- Cue point engine with estimated intro, mix-in, mix-out, drop, loop, and transition length
+- Transition engine with blend, echo out, loop transition, fade, cut, drop swap, and slam mix recommendations
+- Cue point engine with estimated intro, mix-in, mix-out, drop, loop, transition length, and DJ notes
+- Audio Analysis dashboard at `/analysis` for real track upload, structure analysis, cue generation, and transition analysis
 - Live-readable Generated Set performance view
 - CSV and JSON export preserving song order, cue notes, transition notes, and event information
 - DJ Software Integrations page for Serato DJ, rekordbox, and VirtualDJ
-- Python audio analysis backend for BPM, beats, energy curves, cue estimates, transitions, and set analysis
+- Python audio analysis backend for BPM, beats, phrase boundaries, RMS energy, onset strength, spectral flux, novelty curves, cue estimates, transitions, and set analysis
 - Owner-only RLS policies for user data
 
 ## Local Setup
@@ -58,8 +59,9 @@ Apply migrations in order:
 
 - `supabase/migrations/20260619000000_initial_schema.sql`
 - `supabase/migrations/20260619001000_dj_agent_roadmap.sql`
+- `supabase/migrations/20260622001000_audio_analysis_storage.sql`
 
-The migrations create owner-only tables and a private `song-files` bucket. Run the second migration manually in Supabase before using roadmap/export features in production.
+The migrations create owner-only tables and private storage buckets. Run the migrations manually in Supabase before using roadmap/export/audio-analysis persistence features in production.
 
 ## Python Analysis Backend
 
@@ -71,7 +73,7 @@ The backend lives in `backend/` and exposes:
 - `POST /analyze-transition`
 - `POST /generate-set-analysis`
 
-It uses librosa to load uploaded audio, estimate tempo, detect beats, compute RMS energy, estimate intro/mix/drop/mix-out/loop cues, and generate DJ-ready analysis. Uploads are processed through temporary files and deleted after analysis.
+It uses librosa to load uploaded audio, estimate tempo, detect beats, approximate downbeats and phrases, compute RMS energy, onset strength, spectral flux, and novelty curves, then estimate intro, vocal/start-main, drop/hook, breakdown, build-up, peak, outro, best mix-in, best mix-out, and loop regions. Uploads are processed through temporary files and deleted after analysis.
 
 ### Fly.io Deployment
 
@@ -106,9 +108,21 @@ It produces a performance roadmap, not just a playlist:
 - Transition instruction
 - Performance instructions
 
+## Known Limitations
+
+- Audio analysis is heuristic and designed for DJ preparation guidance, not perfect waveform editing.
+- The backend does not perform stem separation, vocal isolation, or copyrighted-audio downloading.
+- Key detection remains metadata-driven unless a future local/free analyzer is added.
+- Long or very large audio files can exceed browser, Vercel, or Fly.io plan limits depending on deployment settings.
+
+## Future AI Integration Plan
+
+The app keeps the deterministic analysis and recommendation layers separate from future AI providers. Later, Groq, OpenAI, Anthropic, or another provider can be added as an optional explanation layer without replacing the free rule-based engine or making paid AI required.
+
 ## Documentation
 
 - `backend/README.md`
+- `docs/audio-analysis-backend.md`
 - `docs/supabase-setup.md`
 - `docs/vercel-deployment.md`
 - `docs/environment-variables.md`
