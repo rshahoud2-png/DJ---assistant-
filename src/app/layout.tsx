@@ -3,8 +3,8 @@ import "./globals.css";
 import { Nav } from "@/components/nav";
 
 export const metadata: Metadata = {
-  title: "AI DJ Assistant",
-  description: "A free rule-based DJ setlist assistant for Vercel and Supabase.",
+  title: "DJ Agent",
+  description: "AI-powered DJ preparation assistant for event-ready performance roadmaps.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
