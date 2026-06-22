@@ -4,7 +4,7 @@ DJ Agent is an AI-powered DJ preparation assistant for professional DJs, wedding
 
 This is not a music player, DJ software, or a basic playlist creator. DJ Agent analyzes a DJ's existing library metadata and generates a complete event-ready performance roadmap with song order, cue recommendations, transition instructions, energy management, and DJ notes.
 
-The MVP uses rule-based intelligence only. No paid AI APIs or hosted AI models are required.
+The MVP uses rule-based intelligence by default. A separate Python FastAPI backend can perform real audio analysis with librosa when deployed.
 
 ## Stack
 
@@ -14,6 +14,7 @@ The MVP uses rule-based intelligence only. No paid AI APIs or hosted AI models a
 - shadcn/ui-compatible component structure
 - Supabase Auth, Postgres, and Storage
 - Vercel deployment from GitHub
+- Optional Python FastAPI analysis backend on Fly.io
 
 The existing project is intentionally continued rather than rebuilt from scratch.
 
@@ -29,6 +30,7 @@ The existing project is intentionally continued rather than rebuilt from scratch
 - Live-readable Generated Set performance view
 - CSV and JSON export preserving song order, cue notes, transition notes, and event information
 - DJ Software Integrations page for Serato DJ, rekordbox, and VirtualDJ
+- Python audio analysis backend for BPM, beats, energy curves, cue estimates, transitions, and set analysis
 - Owner-only RLS policies for user data
 
 ## Local Setup
@@ -44,6 +46,9 @@ Fill in:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_PYTHON_API_URL`
+
+`VITE_PYTHON_API_URL` is also included for Vite-compatible future clients, but this repo currently uses Next.js.
 
 Do not commit real keys.
 
@@ -56,11 +61,35 @@ Apply migrations in order:
 
 The migrations create owner-only tables and a private `song-files` bucket. Run the second migration manually in Supabase before using roadmap/export features in production.
 
+## Python Analysis Backend
+
+The backend lives in `backend/` and exposes:
+
+- `GET /health`
+- `POST /analyze-track`
+- `POST /generate-cues`
+- `POST /analyze-transition`
+- `POST /generate-set-analysis`
+
+It uses librosa to load uploaded audio, estimate tempo, detect beats, compute RMS energy, estimate intro/mix/drop/mix-out/loop cues, and generate DJ-ready analysis. Uploads are processed through temporary files and deleted after analysis.
+
+### Fly.io Deployment
+
+```bash
+cd backend
+cp fly.toml.example fly.toml
+fly launch --no-deploy
+fly secrets set SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=...
+fly deploy
+```
+
+Set `ALLOWED_ORIGINS` to your Vercel domain and set `NEXT_PUBLIC_PYTHON_API_URL` in Vercel to the Fly.io backend URL.
+
 ## Deployment
 
-Deploy directly from GitHub to Vercel. Add the same environment variables in Vercel Project Settings.
+Deploy the frontend directly from GitHub to Vercel. Add the same environment variables in Vercel Project Settings.
 
-No SQLite, Docker, local database, local file storage, Electron app, Python service, or localhost dependency is required for production.
+No SQLite, local database, local file storage, Electron app, or localhost dependency is required for production. The Python backend is deployed separately to Fly.io.
 
 ## Recommendation Engine
 
@@ -79,6 +108,7 @@ It produces a performance roadmap, not just a playlist:
 
 ## Documentation
 
+- `backend/README.md`
 - `docs/supabase-setup.md`
 - `docs/vercel-deployment.md`
 - `docs/environment-variables.md`
