@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import logging
 import os
 import tempfile
 from pathlib import Path
+from typing import Any
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.analysis import analyze_audio_file, average_energy, phrase_distance, transition_type
 from app.schemas import (
@@ -23,23 +28,61 @@ from app.schemas import (
 
 SUPPORTED_SUFFIXES = {".mp3", ".wav", ".aiff", ".aif", ".flac", ".m4a", ".aac", ".ogg"}
 DEFAULT_ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:5173,https://*.vercel.app"
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "80"))
+CHUNK_SIZE = 1024 * 1024
 
-app = FastAPI(title="DJ Agent Analysis Backend", version="0.2.0")
+logger = logging.getLogger("dj-agent-analysis")
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+
+app = FastAPI(title="DJ Agent Analysis Backend", version="0.2.1")
 
 allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS).split(",") if origin.strip()]
+allow_all_origins = "*" in allowed_origins
+allow_vercel_previews = "https://*.vercel.app" in allowed_origins
+explicit_origins = [origin for origin in allowed_origins if origin not in {"*", "https://*.vercel.app"}]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app" if "https://*.vercel.app" in allowed_origins else None,
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["*"] if allow_all_origins else explicit_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app" if allow_vercel_previews else None,
+    allow_credentials=not allow_all_origins,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
 
+def _json_error(status_code: int, error: str, detail: Any | None = None) -> JSONResponse:
+    payload: dict[str, Any] = {"ok": False, "error": error, "status_code": status_code}
+    if detail is not None:
+        payload["detail"] = detail
+    return JSONResponse(status_code=status_code, content=payload)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(_request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    return _json_error(exc.status_code, str(exc.detail))
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_request: Request, exc: RequestValidationError) -> JSONResponse:
+    return _json_error(422, "Request validation failed.", exc.errors())
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled backend error on %s %s", request.method, request.url.path)
+    return _json_error(500, "Internal backend error during audio analysis.", str(exc))
+
+
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "service": "dj-agent-analysis-backend", "analysis_engine": "librosa-structure-v2"}
+def health() -> dict[str, str | int | list[str]]:
+    return {
+        "status": "ok",
+        "service": "dj-agent-analysis-backend",
+        "analysis_engine": "librosa-structure-v2",
+        "max_upload_mb": MAX_UPLOAD_MB,
+        "supported_suffixes": sorted(SUPPORTED_SUFFIXES),
+    }
 
 
 @app.post("/analyze-track", response_model=TrackAnalysis)
@@ -47,12 +90,24 @@ async def analyze_track(file: UploadFile = File(...)) -> TrackAnalysis:
     suffix = Path(file.filename or "upload.wav").suffix.lower() or ".wav"
     if suffix not in SUPPORTED_SUFFIXES:
         raise HTTPException(status_code=415, detail=f"Unsupported audio type '{suffix}'. Upload MP3, WAV, AIFF, FLAC, M4A, AAC, or OGG.")
+
     temp_path: Path | None = None
+    bytes_written = 0
+    max_bytes = MAX_UPLOAD_MB * 1024 * 1024
+
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             temp_path = Path(temp_file.name)
-            while chunk := await file.read(1024 * 1024):
+            while chunk := await file.read(CHUNK_SIZE):
+                bytes_written += len(chunk)
+                if bytes_written > max_bytes:
+                    raise HTTPException(status_code=413, detail=f"Audio file is too large. Max upload is {MAX_UPLOAD_MB} MB.")
                 temp_file.write(chunk)
+
+        if bytes_written == 0:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+        logger.info("Analyzing uploaded track filename=%s suffix=%s bytes=%s temp_path=%s", file.filename, suffix, bytes_written, temp_path)
         result = analyze_audio_file(temp_path)
         return TrackAnalysis(
             title=file.filename,
@@ -74,15 +129,24 @@ async def analyze_track(file: UploadFile = File(...)) -> TrackAnalysis:
             confidence_scores=result.confidence_scores,
             analysis_confidence=result.analysis_confidence,
             warnings=result.warnings,
-            metadata={"filename": file.filename, "content_type": file.content_type},
+            metadata={"filename": file.filename, "content_type": file.content_type, "bytes": bytes_written},
         )
     except HTTPException:
         raise
+    except ValueError as exc:
+        logger.warning("Audio analysis rejected filename=%s error=%s", file.filename, exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Audio analysis failed: {exc}") from exc
+        logger.exception("Audio analysis failed filename=%s suffix=%s", file.filename, suffix)
+        raise HTTPException(status_code=500, detail=f"Audio analysis failed: {exc}") from exc
     finally:
+        await file.close()
         if temp_path and temp_path.exists():
-            temp_path.unlink(missing_ok=True)
+            try:
+                temp_path.unlink()
+                logger.info("Deleted temporary upload %s", temp_path)
+            except OSError:
+                logger.exception("Failed to delete temporary upload %s", temp_path)
 
 
 def _structure_conf(track: TrackAnalysis, key: str, fallback: float) -> float:
