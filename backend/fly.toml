@@ -1,23 +1,36 @@
-# fly.toml app configuration file generated for djassistant on 2026-06-23T15:21:39Z
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# fly.toml app configuration for the DJ Agent audio-analysis backend.
+# Deploy from this directory with: cd backend && fly deploy
 
-app = 'djassistant'
-primary_region = 'ams'
+app = "djassistant"
+primary_region = "ams"
 
 [build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  MAX_UPLOAD_MB = "60"
+  ANALYSIS_SAMPLE_RATE = "22050"
+  MAX_ANALYSIS_SECONDS = "480"
+  ANALYSIS_HOP_LENGTH = "1024"
+  ALLOWED_ORIGINS = "https://*.vercel.app"
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = "stop"
   auto_start_machines = true
   min_machines_running = 0
-  processes = ['app']
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
+  memory = "2gb"
+  cpu_kind = "shared"
   cpus = 1
-  memory_mb = 512
