@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import gc
 import logging
 import os
 import tempfile
@@ -12,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.analysis import analyze_audio_file, average_energy, phrase_distance, transition_type
+from app.analysis import ANALYSIS_SAMPLE_RATE, MAX_ANALYSIS_SECONDS, analyze_audio_file, average_energy, phrase_distance, transition_type
 from app.schemas import (
     AnalyzeTransitionRequest,
     AnalyzeTransitionResponse,
@@ -28,13 +30,14 @@ from app.schemas import (
 
 SUPPORTED_SUFFIXES = {".mp3", ".wav", ".aiff", ".aif", ".flac", ".m4a", ".aac", ".ogg"}
 DEFAULT_ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:5173,https://*.vercel.app"
-MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "80"))
+MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "60"))
 CHUNK_SIZE = 1024 * 1024
 
 logger = logging.getLogger("dj-agent-analysis")
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+analysis_lock = asyncio.Lock()
 
-app = FastAPI(title="DJ Agent Analysis Backend", version="0.2.1")
+app = FastAPI(title="DJ Agent Analysis Backend", version="0.2.2")
 
 allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS).split(",") if origin.strip()]
 allow_all_origins = "*" in allowed_origins
@@ -79,7 +82,9 @@ def health() -> dict[str, str | int | list[str]]:
     return {
         "status": "ok",
         "service": "dj-agent-analysis-backend",
-        "analysis_engine": "librosa-structure-v2",
+        "analysis_engine": "librosa-structure-v2-low-memory",
+        "sample_rate": ANALYSIS_SAMPLE_RATE,
+        "max_analysis_seconds": MAX_ANALYSIS_SECONDS,
         "max_upload_mb": MAX_UPLOAD_MB,
         "supported_suffixes": sorted(SUPPORTED_SUFFIXES),
     }
@@ -107,8 +112,11 @@ async def analyze_track(file: UploadFile = File(...)) -> TrackAnalysis:
         if bytes_written == 0:
             raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
-        logger.info("Analyzing uploaded track filename=%s suffix=%s bytes=%s temp_path=%s", file.filename, suffix, bytes_written, temp_path)
-        result = analyze_audio_file(temp_path)
+        logger.info("Queued uploaded track filename=%s suffix=%s bytes=%s temp_path=%s", file.filename, suffix, bytes_written, temp_path)
+        async with analysis_lock:
+            logger.info("Analyzing uploaded track filename=%s sample_rate=%s max_seconds=%s", file.filename, ANALYSIS_SAMPLE_RATE, MAX_ANALYSIS_SECONDS)
+            result = await asyncio.to_thread(analyze_audio_file, temp_path)
+
         return TrackAnalysis(
             title=file.filename,
             estimated_bpm=result.estimated_bpm,
@@ -129,10 +137,19 @@ async def analyze_track(file: UploadFile = File(...)) -> TrackAnalysis:
             confidence_scores=result.confidence_scores,
             analysis_confidence=result.analysis_confidence,
             warnings=result.warnings,
-            metadata={"filename": file.filename, "content_type": file.content_type, "bytes": bytes_written},
+            metadata={
+                "filename": file.filename,
+                "content_type": file.content_type,
+                "bytes": bytes_written,
+                "sample_rate": ANALYSIS_SAMPLE_RATE,
+                "max_analysis_seconds": MAX_ANALYSIS_SECONDS,
+            },
         )
     except HTTPException:
         raise
+    except MemoryError as exc:
+        logger.exception("Audio analysis ran out of memory filename=%s suffix=%s", file.filename, suffix)
+        raise HTTPException(status_code=503, detail="Audio analysis ran out of memory. Try a shorter file or lower bitrate export.") from exc
     except ValueError as exc:
         logger.warning("Audio analysis rejected filename=%s error=%s", file.filename, exc)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -147,6 +164,7 @@ async def analyze_track(file: UploadFile = File(...)) -> TrackAnalysis:
                 logger.info("Deleted temporary upload %s", temp_path)
             except OSError:
                 logger.exception("Failed to delete temporary upload %s", temp_path)
+        gc.collect()
 
 
 def _structure_conf(track: TrackAnalysis, key: str, fallback: float) -> float:
