@@ -6,7 +6,10 @@ primary_region = "iad"
 
 [env]
   PORT = "8080"
-  MAX_UPLOAD_MB = "80"
+  MAX_UPLOAD_MB = "60"
+  ANALYSIS_SAMPLE_RATE = "22050"
+  MAX_ANALYSIS_SECONDS = "480"
+  ANALYSIS_HOP_LENGTH = "1024"
   ALLOWED_ORIGINS = "https://your-vercel-app.vercel.app,https://*.vercel.app"
 
 [http_service]
