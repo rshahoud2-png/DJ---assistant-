@@ -1,4 +1,4 @@
-app = "dj-agent-analysis-backend"
+app = "djassistant"
 primary_region = "iad"
 
 [build]
@@ -6,7 +6,8 @@ primary_region = "iad"
 
 [env]
   PORT = "8080"
-  ALLOWED_ORIGINS = "https://your-vercel-app.vercel.app"
+  MAX_UPLOAD_MB = "80"
+  ALLOWED_ORIGINS = "https://your-vercel-app.vercel.app,https://*.vercel.app"
 
 [http_service]
   internal_port = 8080
